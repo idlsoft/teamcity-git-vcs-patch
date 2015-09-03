@@ -1,0 +1,47 @@
+<project default="cleanpackage">
+    <!--
+    Check if this URL changed:
+    http://git.jetbrains.org/?p=teamcity/git-plugin.git;a=history;f=git-agent/src/jetbrains/buildServer/buildTriggers/vcs/git/agent/command/impl/FetchCommandImpl.java
+    If there are changes to the file beyond 2014-11-07, then FetchCommandImpl needs to be updated
+    Unpack teamcity next to this directory and run ANT
+    -->
+    <property name="teamcity.dir" location="../teamcity"/>
+    <property name="classes" location="${basedir}/out/classes"/>
+    <property name="packing.dir" location="${basedir}/out/packing"/>
+    <target name="clean">
+        <delete dir="${classes}"/>
+        <delete dir="${packing.dir}"/>
+    </target>
+    <target name="unpack">
+        <unzip src="${teamcity.dir}/webapps/ROOT/WEB-INF/plugins/jetbrains.git.zip" dest="${packing.dir}/1"/>
+        <unzip src="${packing.dir}/1/agent/jetbrains.git.zip" dest="${packing.dir}/2"/>
+    </target>
+    <target name="compile" depends="unpack">
+        <mkdir dir="${classes}"/>
+        <javac srcdir="src" destdir="${classes}" target="1.6" source="1.6" includeantruntime="false">
+            <classpath>
+                <fileset dir="${teamcity.dir}/webapps/ROOT/WEB-INF/lib" includes="*.jar"/>
+                <fileset dir="${teamcity.dir}/devPackage" includes="*.jar"/>
+                <fileset dir="${packing.dir}/2/jetbrains.git/lib" includes="*.jar"/>
+            </classpath>
+        </javac>
+    </target>
+
+    <target name="package" depends="compile">
+        <zip destfile="${packing.dir}/3/jetbrains.git/lib/git-agent.jar">
+            <fileset dir="${classes}"/>
+            <zipfileset src="${packing.dir}/2/jetbrains.git/lib/git-agent.jar"
+                        excludes="jetbrains/buildServer/buildTriggers/vcs/git/agent/command/impl/FetchCommandImpl.class"/>
+        </zip>
+        <zip destfile="${packing.dir}/4/agent/jetbrains.git.zip">
+            <fileset dir="${packing.dir}/2" excludes="jetbrains.git/lib/git-agent.jar"/>
+            <fileset dir="${packing.dir}/3"/>
+        </zip>
+        <zip destfile="${packing.dir}/jetbrains.git.zip">
+            <fileset  dir="${packing.dir}/1" excludes="agent/jetbrains.git.zip"/>
+            <fileset  dir="${packing.dir}/4"/>
+        </zip>
+    </target>
+
+    <target name="cleanpackage" depends="clean,package"/>
+</project>
